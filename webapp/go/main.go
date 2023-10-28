@@ -50,6 +50,7 @@ type Handler struct {
 }
 
 func main() {
+	fmt.Println("start main")
 	rand.Seed(time.Now().UnixNano())
 	time.Local = time.FixedZone("Local", 9*60*60)
 
