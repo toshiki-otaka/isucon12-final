@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -445,6 +446,8 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	}
 
 	obtainPresents := make([]*UserPresent, 0)
+	userPresents := make([]*UserPresent, 0, len(normalPresents))
+	UserPresentAllReceivedHistories := make([]*UserPresentAllReceivedHistory, 0, len(normalPresents))
 	for _, np := range normalPresents {
 		received := new(UserPresentAllReceivedHistory)
 		query = "SELECT * FROM user_present_all_received_history WHERE user_id=? AND present_all_id=?"
@@ -472,10 +475,11 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			CreatedAt:      requestAt,
 			UpdatedAt:      requestAt,
 		}
-		query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-		if _, err := tx.Exec(query, up.ID, up.UserID, up.SentAt, up.ItemType, up.ItemID, up.Amount, up.PresentMessage, up.CreatedAt, up.UpdatedAt); err != nil {
-			return nil, err
-		}
+		userPresents = append(userPresents, up)
+		// query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		// if _, err := tx.Exec(query, up.ID, up.UserID, up.SentAt, up.ItemType, up.ItemID, up.Amount, up.PresentMessage, up.CreatedAt, up.UpdatedAt); err != nil {
+		// 	return nil, err
+		// }
 
 		history := &UserPresentAllReceivedHistory{
 			ID:           generateRandomID(),
@@ -485,20 +489,53 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			CreatedAt:    requestAt,
 			UpdatedAt:    requestAt,
 		}
-		query = "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
-		if _, err := tx.Exec(
-			query,
-			history.ID,
-			history.UserID,
-			history.PresentAllID,
-			history.ReceivedAt,
-			history.CreatedAt,
-			history.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
+		UserPresentAllReceivedHistories = append(UserPresentAllReceivedHistories, history)
+		// query = "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
+		// if _, err := tx.Exec(
+		// 	query,
+		// 	history.ID,
+		// 	history.UserID,
+		// 	history.PresentAllID,
+		// 	history.ReceivedAt,
+		// 	history.CreatedAt,
+		// 	history.UpdatedAt,
+		// ); err != nil {
+		// 	return nil, err
+		// }
 
 		obtainPresents = append(obtainPresents, up)
+	}
+
+	// NOTE: user_presents
+	query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES "
+	columns := []string{"id", "user_id", "sent_at", "item_type", "item_id", "amount", "present_message", "created_at", "updated_at"}
+	valueStrings := make([]string, 0, len(userPresents))
+	valueArgs := make([]interface{}, 0, len(userPresents)*len(columns))
+	for _, item := range userPresents {
+		valueStrings = append(valueStrings, "("+strings.Repeat("?", 9)+")")
+		for _, _ = range columns {
+			valueArgs = append(valueArgs, item.ID, item.UserID, item.SentAt, item.ItemType, item.ItemID, item.Amount, item.PresentMessage, item.CreatedAt, item.UpdatedAt)
+		}
+	}
+	query += strings.Join(valueStrings, ", ")
+	if _, err := tx.Exec(query, valueArgs...); err != nil {
+		return nil, err
+	}
+
+	// NOTE: user_present_all_received_history
+	query = "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES "
+	columns = []string{"id", "user_id", "present_all_id", "received_at", "created_at", "updated_at"}
+	valueStrings = make([]string, 0, len(UserPresentAllReceivedHistories))
+	valueArgs = make([]interface{}, 0, len(UserPresentAllReceivedHistories)*len(columns))
+	for _, item := range UserPresentAllReceivedHistories {
+		valueStrings = append(valueStrings, "("+strings.Repeat("?", 6)+")")
+		for _, _ = range columns {
+			valueArgs = append(valueArgs, item.ID, item.UserID, item.PresentAllID, item.ReceivedAt, item.CreatedAt, item.UpdatedAt)
+		}
+	}
+	query += strings.Join(valueStrings, ", ")
+	if _, err := tx.Exec(query, valueArgs...); err != nil {
+		return nil, err
 	}
 
 	return obtainPresents, nil
