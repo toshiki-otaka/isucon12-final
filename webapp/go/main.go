@@ -874,11 +874,12 @@ func (h *Handler) login(c echo.Context) error {
 	}
 	fmt.Println("userSession", userSession)
 	if userSession != nil {
+		if userSession.UserID != user.ID {
+			return errorResponse(c, http.StatusForbidden, ErrForbidden)
+		}
 		fmt.Println("*userSession is ", *userSession, "user.ID is", user.ID)
 	}
-	if userSession.UserID != user.ID {
-		return errorResponse(c, http.StatusForbidden, ErrForbidden)
-	}
+
 	// NOTE: セッションの有効期限切れチェック
 	if userSession.ExpiredAt > requestAt {
 		sessionID = userSession.SessionID
