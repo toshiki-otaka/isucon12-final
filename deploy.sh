@@ -24,8 +24,8 @@ git pull origin $BRANCH
 cd webapp/go
 /home/isucon/local/golang/bin/go build -o isuconquest .
 mv isuconquest ${APP_HOME}/go/isuconquest
-cp ./webapp/sql/3_schema_exclude_user_presents.sql ${APP_HOME}/sql/3_schema_exclude_user_presents.sql
 cd -
+cp ./webapp/sql/3_schema_exclude_user_presents.sql ${APP_HOME}/sql/3_schema_exclude_user_presents.sql
 
 sudo systemctl restart isuconquest.go.service
 
