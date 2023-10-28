@@ -2,8 +2,6 @@
 
 set -eu
 
-APP_HOME=/home/isucon/webapp
-
 # log rotation
 sudo mv /var/log/nginx/access.log /var/log/nginx/access.log.`date +%Y%m%d%H%M%S`
 sudo nginx -s reopen
@@ -23,7 +21,6 @@ git pull origin $BRANCH
 # app
 cd webapp/go
 /home/isucon/local/golang/bin/go build -o isuconquest .
-mv isuconquest ${APP_HOME}/go/isuconquest
 cd -
 
 sudo systemctl restart isuconquest.go.service
