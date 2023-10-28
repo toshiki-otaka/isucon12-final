@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -507,38 +506,58 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	}
 
 	// NOTE: user_presents
-	query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES "
-	columns := []string{"id", "user_id", "sent_at", "item_type", "item_id", "amount", "present_message", "created_at", "updated_at"}
-	valueStrings := make([]string, 0, len(userPresents))
-	valueArgs := make([]interface{}, 0, len(userPresents)*len(columns))
-	for _, item := range userPresents {
-		valueStrings = append(valueStrings, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
-		for _, _ = range columns {
-			valueArgs = append(valueArgs, item.ID, item.UserID, item.SentAt, item.ItemType, item.ItemID, item.Amount, item.PresentMessage, item.CreatedAt, item.UpdatedAt)
-		}
-	}
-	query += strings.Join(valueStrings, ", ")
-	if _, err := tx.Exec(query, valueArgs...); err != nil {
+	if err := bulkInsertUserPresents(tx, userPresents); err != nil {
 		return nil, err
 	}
 
 	// NOTE: user_present_all_received_history
-	query = "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES "
-	columns = []string{"id", "user_id", "present_all_id", "received_at", "created_at", "updated_at"}
-	valueStrings = make([]string, 0, len(UserPresentAllReceivedHistories))
-	valueArgs = make([]interface{}, 0, len(UserPresentAllReceivedHistories)*len(columns))
-	for _, item := range UserPresentAllReceivedHistories {
-		valueStrings = append(valueStrings, "(?, ?, ?, ?, ?, ?)")
-		for _, _ = range columns {
-			valueArgs = append(valueArgs, item.ID, item.UserID, item.PresentAllID, item.ReceivedAt, item.CreatedAt, item.UpdatedAt)
-		}
-	}
-	query += strings.Join(valueStrings, ", ")
-	if _, err := tx.Exec(query, valueArgs...); err != nil {
+	if err := bulkInsertUserPresentHistories(tx, UserPresentAllReceivedHistories); err != nil {
 		return nil, err
 	}
 
 	return obtainPresents, nil
+}
+
+func bulkInsertUserPresents(tx *sqlx.Tx, userPresents []*UserPresent) error {
+	if len(userPresents) == 0 {
+		return nil
+	}
+	query := "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES "
+	args := []any{}
+	for i := range userPresents {
+		userPresent := userPresents[i]
+		args = append(args, userPresent.ID, userPresent.UserID, userPresent.SentAt, userPresent.ItemType, userPresent.ItemID, userPresent.Amount, userPresent.PresentMessage, userPresent.CreatedAt, userPresent.UpdatedAt)
+		query += "(?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		if i == len(userPresents)-1 {
+			break
+		}
+		query += ","
+	}
+	if _, err := tx.Exec(query, args...); err != nil {
+		return err
+	}
+	return nil
+}
+
+func bulkInsertUserPresentHistories(tx *sqlx.Tx, userPresentHistories []*UserPresentAllReceivedHistory) error {
+	if len(userPresentHistories) == 0 {
+		return nil
+	}
+	query := "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES "
+	args := []any{}
+	for i := range userPresentHistories {
+		userPresentHistory := userPresentHistories[i]
+		args = append(args, userPresentHistory.ID, userPresentHistory.UserID, userPresentHistory.PresentAllID, userPresentHistory.ReceivedAt, userPresentHistory.CreatedAt, userPresentHistory.UpdatedAt)
+		query += "(?, ?, ?, ?, ?, ?)"
+		if i == len(userPresentHistories)-1 {
+			break
+		}
+		query += ","
+	}
+	if _, err := tx.Exec(query, args...); err != nil {
+		return err
+	}
+	return nil
 }
 
 // obtainItem アイテム付与処理
