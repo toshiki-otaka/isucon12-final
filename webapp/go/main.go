@@ -1294,6 +1294,9 @@ func (h *Handler) receivePresent(c echo.Context) error {
 }
 
 func bulkInsertUserCards(tx *sqlx.Tx, obtainCards []*UserCard) error {
+	if len(obtainCards) == 0 {
+		return nil
+	}
 	query := "INSERT INTO user_cards(id, user_id, card_id, amount_per_sec, level, total_exp, created_at, updated_at) VALUES "
 	cardArgs := []any{}
 	for i := range obtainCards {
