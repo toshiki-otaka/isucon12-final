@@ -1862,7 +1862,7 @@ func noContentResponse(c echo.Context, status int) error {
 
 // generateID ユニークなIDを生成する
 func (h *Handler) generateID() (int64, error) {
-	return rand.Int63(), nil
+	return 100000000001 + rand.Int63n(math.MaxInt64-100000000001), nil
 }
 
 // generateUUID UUIDの生成
