@@ -512,7 +512,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	valueStrings := make([]string, 0, len(userPresents))
 	valueArgs := make([]interface{}, 0, len(userPresents)*len(columns))
 	for _, item := range userPresents {
-		valueStrings = append(valueStrings, "("+strings.Repeat("?", 9)+")")
+		valueStrings = append(valueStrings, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
 		for _, _ = range columns {
 			valueArgs = append(valueArgs, item.ID, item.UserID, item.SentAt, item.ItemType, item.ItemID, item.Amount, item.PresentMessage, item.CreatedAt, item.UpdatedAt)
 		}
@@ -528,7 +528,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	valueStrings = make([]string, 0, len(UserPresentAllReceivedHistories))
 	valueArgs = make([]interface{}, 0, len(UserPresentAllReceivedHistories)*len(columns))
 	for _, item := range UserPresentAllReceivedHistories {
-		valueStrings = append(valueStrings, "("+strings.Repeat("?", 6)+")")
+		valueStrings = append(valueStrings, "(?, ?, ?, ?, ?, ?)")
 		for _, _ = range columns {
 			valueArgs = append(valueArgs, item.ID, item.UserID, item.PresentAllID, item.ReceivedAt, item.CreatedAt, item.UpdatedAt)
 		}
