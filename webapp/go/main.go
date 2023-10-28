@@ -362,6 +362,7 @@ func (h *Handler) obtainLoginBonus(tx *sqlx.Tx, userID int64, requestAt int64) (
 
 	sendLoginBonuses := make([]*UserLoginBonus, 0)
 
+	obtainCards := []*UserCard{}
 	for _, bonus := range loginBonuses {
 		initBonus := false
 		userBonus := new(UserLoginBonus)
@@ -411,10 +412,11 @@ func (h *Handler) obtainLoginBonus(tx *sqlx.Tx, userID int64, requestAt int64) (
 			return nil, err
 		}
 
-		_, _, _, err := h.obtainItem(tx, userID, rewardItem.ItemID, rewardItem.ItemType, rewardItem.Amount, requestAt)
+		_, cards, _, err := h.obtainItem(tx, userID, rewardItem.ItemID, rewardItem.ItemType, rewardItem.Amount, requestAt)
 		if err != nil {
 			return nil, err
 		}
+		obtainCards = append(obtainCards, cards...)
 
 		// 進捗の保存
 		if initBonus {
@@ -430,6 +432,10 @@ func (h *Handler) obtainLoginBonus(tx *sqlx.Tx, userID int64, requestAt int64) (
 		}
 
 		sendLoginBonuses = append(sendLoginBonuses, userBonus)
+	}
+
+	if err := bulkInsertUserCards(tx, obtainCards); err != nil {
+		return nil, err
 	}
 
 	return sendLoginBonuses, nil
@@ -557,10 +563,6 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 			TotalExp:     0,
 			CreatedAt:    requestAt,
 			UpdatedAt:    requestAt,
-		}
-		query = "INSERT INTO user_cards(id, user_id, card_id, amount_per_sec, level, total_exp, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-		if _, err := tx.Exec(query, card.ID, card.UserID, card.CardID, card.AmountPerSec, card.Level, card.TotalExp, card.CreatedAt, card.UpdatedAt); err != nil {
-			return nil, nil, nil, err
 		}
 		obtainCards = append(obtainCards, card)
 
@@ -1294,6 +1296,7 @@ func (h *Handler) receivePresent(c echo.Context) error {
 	defer tx.Rollback() //nolint:errcheck
 
 	// 配布処理
+	obtainCards := []*UserCard{}
 	for i := range obtainPresent {
 		if obtainPresent[i].DeletedAt != nil {
 			return errorResponse(c, http.StatusInternalServerError, fmt.Errorf("received present"))
@@ -1308,7 +1311,7 @@ func (h *Handler) receivePresent(c echo.Context) error {
 			return errorResponse(c, http.StatusInternalServerError, err)
 		}
 
-		_, _, _, err = h.obtainItem(tx, v.UserID, v.ItemID, v.ItemType, int64(v.Amount), requestAt)
+		_, cards, _, err := h.obtainItem(tx, v.UserID, v.ItemID, v.ItemType, int64(v.Amount), requestAt)
 		if err != nil {
 			if err == ErrUserNotFound || err == ErrItemNotFound {
 				return errorResponse(c, http.StatusNotFound, err)
@@ -1318,6 +1321,11 @@ func (h *Handler) receivePresent(c echo.Context) error {
 			}
 			return errorResponse(c, http.StatusInternalServerError, err)
 		}
+		obtainCards = append(obtainCards, cards...)
+	}
+
+	if err := bulkInsertUserCards(tx, obtainCards); err != nil {
+		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 
 	err = tx.Commit()
@@ -1328,6 +1336,24 @@ func (h *Handler) receivePresent(c echo.Context) error {
 	return successResponse(c, &ReceivePresentResponse{
 		UpdatedResources: makeUpdatedResources(requestAt, nil, nil, nil, nil, nil, nil, obtainPresent),
 	})
+}
+
+func bulkInsertUserCards(tx *sqlx.Tx, obtainCards []*UserCard) error {
+	query := "INSERT INTO user_cards(id, user_id, card_id, amount_per_sec, level, total_exp, created_at, updated_at) VALUES "
+	cardArgs := []any{}
+	for i := range obtainCards {
+		card := obtainCards[i]
+		cardArgs = append(cardArgs, card.ID, card.UserID, card.CardID, card.AmountPerSec, card.Level, card.TotalExp, card.CreatedAt, card.UpdatedAt)
+		query += "(?, ?, ?, ?, ?, ?, ?, ?)"
+		if i == len(obtainCards)-1 {
+			break
+		}
+		query += ","
+	}
+	if _, err := tx.Exec(query, cardArgs...); err != nil {
+		return err
+	}
+	return nil
 }
 
 type ReceivePresentRequest struct {
