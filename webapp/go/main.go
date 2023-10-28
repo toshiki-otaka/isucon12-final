@@ -372,13 +372,8 @@ func (h *Handler) obtainLoginBonus(tx *sqlx.Tx, userID int64, requestAt int64) (
 				return nil, err
 			}
 			initBonus = true
-
-			ubID, err := h.generateID()
-			if err != nil {
-				return nil, err
-			}
 			userBonus = &UserLoginBonus{
-				ID:                 ubID,
+				ID:                 generateRandomID(),
 				UserID:             userID,
 				LoginBonusID:       bonus.ID,
 				LastRewardSequence: 0,
@@ -482,12 +477,8 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			return nil, err
 		}
 
-		phID, err := h.generateID()
-		if err != nil {
-			return nil, err
-		}
 		history := &UserPresentAllReceivedHistory{
-			ID:           phID,
+			ID:           generateRandomID(),
 			UserID:       userID,
 			PresentAllID: np.ID,
 			ReceivedAt:   requestAt,
@@ -550,12 +541,8 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 			return nil, nil, nil, ErrItemNotFound
 		}
 
-		cID, err := h.generateID()
-		if err != nil {
-			return nil, nil, nil, err
-		}
 		card := &UserCard{
-			ID:           cID,
+			ID:           generateRandomID(),
 			UserID:       userID,
 			CardID:       item.ID,
 			AmountPerSec: *item.AmountPerSec,
@@ -589,12 +576,8 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 		}
 
 		if uitem == nil {
-			uitemID, err := h.generateID()
-			if err != nil {
-				return nil, nil, nil, err
-			}
 			uitem = &UserItem{
-				ID:        uitemID,
+				ID:        generateRandomID(),
 				UserID:    userID,
 				ItemType:  item.ItemType,
 				ItemID:    item.ID,
@@ -674,12 +657,8 @@ func (h *Handler) createUser(c echo.Context) error {
 	defer tx.Rollback() //nolint:errcheck
 
 	// ユーザ作成
-	uID, err := h.generateID()
-	if err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
 	user := &User{
-		ID:              uID,
+		ID:              generateRandomID(),
 		IsuCoin:         0,
 		LastGetRewardAt: requestAt,
 		LastActivatedAt: requestAt,
@@ -692,12 +671,8 @@ func (h *Handler) createUser(c echo.Context) error {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 
-	udID, err := h.generateID()
-	if err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
 	userDevice := &UserDevice{
-		ID:           udID,
+		ID:           generateRandomID(),
 		UserID:       user.ID,
 		PlatformID:   req.ViewerID,
 		PlatformType: req.PlatformType,
@@ -722,12 +697,8 @@ func (h *Handler) createUser(c echo.Context) error {
 
 	initCards := make([]*UserCard, 0, 3)
 	for i := 0; i < 3; i++ {
-		cID, err := h.generateID()
-		if err != nil {
-			return errorResponse(c, http.StatusInternalServerError, err)
-		}
 		card := &UserCard{
-			ID:           cID,
+			ID:           generateRandomID(),
 			UserID:       user.ID,
 			CardID:       initCard.ID,
 			AmountPerSec: *initCard.AmountPerSec,
@@ -743,12 +714,8 @@ func (h *Handler) createUser(c echo.Context) error {
 		initCards = append(initCards, card)
 	}
 
-	deckID, err := h.generateID()
-	if err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
 	initDeck := &UserDeck{
-		ID:        deckID,
+		ID:        generateRandomID(),
 		UserID:    user.ID,
 		CardID1:   initCards[0].ID,
 		CardID2:   initCards[1].ID,
@@ -774,16 +741,12 @@ func (h *Handler) createUser(c echo.Context) error {
 	}
 
 	// セッション発行
-	sID, err := h.generateID()
-	if err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
 	sessID, err := generateUUID()
 	if err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	sess := &Session{
-		ID:        sID,
+		ID:        generateRandomID(),
 		UserID:    user.ID,
 		SessionID: sessID,
 		CreatedAt: requestAt,
@@ -870,16 +833,12 @@ func (h *Handler) login(c echo.Context) error {
 	if _, err = tx.Exec(query, requestAt, req.UserID); err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
-	sID, err := h.generateID()
-	if err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
 	sessID, err := generateUUID()
 	if err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	sess := &Session{
-		ID:        sID,
+		ID:        generateRandomID(),
 		UserID:    req.UserID,
 		SessionID: sessID,
 		CreatedAt: requestAt,
@@ -997,16 +956,12 @@ func (h *Handler) listGacha(c echo.Context) error {
 	if _, err = h.DB.Exec(query, requestAt, userID); err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
-	tID, err := h.generateID()
-	if err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
 	tk, err := generateUUID()
 	if err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	token := &UserOneTimeToken{
-		ID:        tID,
+		ID:        generateRandomID(),
 		UserID:    userID,
 		Token:     tk,
 		TokenType: 1,
@@ -1406,16 +1361,12 @@ func (h *Handler) listItem(c echo.Context) error {
 	if _, err = h.DB.Exec(query, requestAt, userID); err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
-	tID, err := h.generateID()
-	if err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
 	tk, err := generateUUID()
 	if err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	token := &UserOneTimeToken{
-		ID:        tID,
+		ID:        generateRandomID(),
 		UserID:    userID,
 		Token:     tk,
 		TokenType: 2,
@@ -1685,12 +1636,8 @@ func (h *Handler) updateDeck(c echo.Context) error {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 
-	udID, err := h.generateID()
-	if err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
 	newDeck := &UserDeck{
-		ID:        udID,
+		ID:        generateRandomID(),
 		UserID:    userID,
 		CardID1:   req.CardIDs[0],
 		CardID2:   req.CardIDs[1],
@@ -1893,6 +1840,10 @@ func successResponse(c echo.Context, v interface{}) error {
 // noContentResponse
 func noContentResponse(c echo.Context, status int) error {
 	return c.NoContent(status)
+}
+
+func generateRandomID() int64 {
+	return rand.Int63n(math.MaxInt64) + 1
 }
 
 // generateID ユニークなIDを生成する
