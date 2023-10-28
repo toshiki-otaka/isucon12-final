@@ -92,16 +92,12 @@ func (h *Handler) adminLogin(c echo.Context) error {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 
-	sID, err := h.generateID()
-	if err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
 	sessID, err := generateUUID()
 	if err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	sess := &Session{
-		ID:        sID,
+		ID:        generateRandomID(),
 		UserID:    req.UserID,
 		SessionID: sessID,
 		CreatedAt: requestAt,
