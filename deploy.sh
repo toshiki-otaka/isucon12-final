@@ -26,6 +26,6 @@ cd webapp/go
 mv isuconquest ${APP_HOME}/go/isuconquest
 cd -
 
-systemctl restart isuconquest.go.service
+sudo systemctl restart isuconquest.go.service
 
 echo "success!"
