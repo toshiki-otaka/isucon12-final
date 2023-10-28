@@ -45,7 +45,7 @@ const (
 	DeckCardNumber      int = 3
 	PresentCountPerPage int = 100
 
-	SQLDirectory string = "../sql/"
+	SQLDirectory string = "../../isucon12-final/webapp/sql/"
 )
 
 type Handler struct {
