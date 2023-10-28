@@ -1330,8 +1330,8 @@ func (h *Handler) receivePresent(c echo.Context) error {
 
 		v := obtainPresent[i]
 		presentIDs = append(presentIDs, v.ID)
-		// obtainPresent[i].UpdatedAt = requestAt
-		// obtainPresent[i].DeletedAt = &requestAt
+		obtainPresent[i].UpdatedAt = requestAt
+		obtainPresent[i].DeletedAt = &requestAt
 		// v := obtainPresent[i]
 		// query = "UPDATE user_presents SET deleted_at=?, updated_at=? WHERE id=?"
 		// _, err := tx.Exec(query, requestAt, requestAt, v.ID)
