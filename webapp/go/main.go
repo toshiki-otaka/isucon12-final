@@ -872,6 +872,10 @@ func (h *Handler) login(c echo.Context) error {
 			return errorResponse(c, http.StatusInternalServerError, err)
 		}
 	}
+	fmt.Println("userSession", userSession)
+	if userSession != nil {
+		fmt.Println("*userSession is ", *userSession, "user.ID is", user.ID)
+	}
 	if userSession.UserID != user.ID {
 		return errorResponse(c, http.StatusForbidden, ErrForbidden)
 	}
