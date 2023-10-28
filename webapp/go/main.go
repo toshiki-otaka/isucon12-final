@@ -532,13 +532,16 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 		obtainCoins = append(obtainCoins, obtainAmount)
 
 	case 2: // card(ハンマー)
-		query := "SELECT * FROM item_masters WHERE id=? AND item_type=?"
+		query := "SELECT * FROM item_masters WHERE id=?"
 		item := new(ItemMaster)
 		if err := tx.Get(item, query, itemID, itemType); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, nil, nil, ErrItemNotFound
 			}
 			return nil, nil, nil, err
+		}
+		if item.ItemType != itemType {
+			return nil, nil, nil, ErrItemNotFound
 		}
 
 		cID, err := h.generateID()
@@ -562,13 +565,16 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 		obtainCards = append(obtainCards, card)
 
 	case 3, 4: // 強化素材
-		query := "SELECT * FROM item_masters WHERE id=? AND item_type=?"
+		query := "SELECT * FROM item_masters WHERE id=?"
 		item := new(ItemMaster)
 		if err := tx.Get(item, query, itemID, itemType); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, nil, nil, ErrItemNotFound
 			}
 			return nil, nil, nil, err
+		}
+		if item.ItemType != itemType {
+			return nil, nil, nil, ErrItemNotFound
 		}
 
 		query = "SELECT * FROM user_items WHERE user_id=? AND item_id=?"
