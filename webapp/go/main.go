@@ -374,7 +374,7 @@ func (h *Handler) obtainLoginBonus(tx *sqlx.Tx, userID int64, requestAt int64) (
 			}
 			initBonus = true
 			userBonus = &UserLoginBonus{
-				ID:                 generateRandomID(),
+				ID:                 generateUniqueID(),
 				UserID:             userID,
 				LoginBonusID:       bonus.ID,
 				LastRewardSequence: 0,
@@ -482,7 +482,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		// }
 
 		history := &UserPresentAllReceivedHistory{
-			ID:           generateRandomID(),
+			ID:           generateUniqueID(),
 			UserID:       userID,
 			PresentAllID: np.ID,
 			ReceivedAt:   requestAt,
@@ -579,7 +579,7 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 		}
 
 		card := &UserCard{
-			ID:           generateRandomID(),
+			ID:           generateUniqueID(),
 			UserID:       userID,
 			CardID:       item.ID,
 			AmountPerSec: *item.AmountPerSec,
@@ -614,7 +614,7 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 
 		if uitem == nil {
 			uitem = &UserItem{
-				ID:        generateRandomID(),
+				ID:        generateUniqueID(),
 				UserID:    userID,
 				ItemType:  item.ItemType,
 				ItemID:    item.ID,
@@ -695,7 +695,7 @@ func (h *Handler) createUser(c echo.Context) error {
 
 	// ユーザ作成
 	user := &User{
-		ID:              generateRandomID(),
+		ID:              generateUniqueID(),
 		IsuCoin:         0,
 		LastGetRewardAt: requestAt,
 		LastActivatedAt: requestAt,
@@ -709,7 +709,7 @@ func (h *Handler) createUser(c echo.Context) error {
 	}
 
 	userDevice := &UserDevice{
-		ID:           generateRandomID(),
+		ID:           generateUniqueID(),
 		UserID:       user.ID,
 		PlatformID:   req.ViewerID,
 		PlatformType: req.PlatformType,
@@ -735,7 +735,7 @@ func (h *Handler) createUser(c echo.Context) error {
 	initCards := make([]*UserCard, 0, 3)
 	for i := 0; i < 3; i++ {
 		card := &UserCard{
-			ID:           generateRandomID(),
+			ID:           generateUniqueID(),
 			UserID:       user.ID,
 			CardID:       initCard.ID,
 			AmountPerSec: *initCard.AmountPerSec,
@@ -752,7 +752,7 @@ func (h *Handler) createUser(c echo.Context) error {
 	}
 
 	initDeck := &UserDeck{
-		ID:        generateRandomID(),
+		ID:        generateUniqueID(),
 		UserID:    user.ID,
 		CardID1:   initCards[0].ID,
 		CardID2:   initCards[1].ID,
@@ -783,7 +783,7 @@ func (h *Handler) createUser(c echo.Context) error {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	sess := &Session{
-		ID:        generateRandomID(),
+		ID:        generateUniqueID(),
 		UserID:    user.ID,
 		SessionID: sessID,
 		CreatedAt: requestAt,
@@ -897,7 +897,7 @@ func (h *Handler) login(c echo.Context) error {
 		}
 		sessionID = sessID
 		sess := &Session{
-			ID:        generateRandomID(),
+			ID:        generateUniqueID(),
 			UserID:    req.UserID,
 			SessionID: sessID,
 			CreatedAt: requestAt,
@@ -1021,7 +1021,7 @@ func (h *Handler) listGacha(c echo.Context) error {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	token := &UserOneTimeToken{
-		ID:        generateRandomID(),
+		ID:        generateUniqueID(),
 		UserID:    userID,
 		Token:     tk,
 		TokenType: 1,
@@ -1161,12 +1161,8 @@ func (h *Handler) drawGacha(c echo.Context) error {
 	// プレゼントにガチャ結果を付与する
 	presents := make([]*UserPresent, 0, gachaCount)
 	for _, v := range result {
-		pID, err := h.generateID()
-		if err != nil {
-			return errorResponse(c, http.StatusInternalServerError, err)
-		}
 		present := &UserPresent{
-			ID:             pID,
+			ID:             generateUniqueID(),
 			UserID:         userID,
 			SentAt:         requestAt,
 			ItemType:       v.ItemType,
@@ -1429,7 +1425,7 @@ func (h *Handler) listItem(c echo.Context) error {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	token := &UserOneTimeToken{
-		ID:        generateRandomID(),
+		ID:        generateUniqueID(),
 		UserID:    userID,
 		Token:     tk,
 		TokenType: 2,
@@ -1700,7 +1696,7 @@ func (h *Handler) updateDeck(c echo.Context) error {
 	}
 
 	newDeck := &UserDeck{
-		ID:        generateRandomID(),
+		ID:        generateUniqueID(),
 		UserID:    userID,
 		CardID1:   req.CardIDs[0],
 		CardID2:   req.CardIDs[1],
@@ -1905,8 +1901,8 @@ func noContentResponse(c echo.Context, status int) error {
 	return c.NoContent(status)
 }
 
-func generateRandomID() int64 {
-	return rand.Int63n(math.MaxInt64) + 1
+func generateUniqueID() int64 {
+	return time.Now().UnixNano()
 }
 
 // generateID ユニークなIDを生成する
