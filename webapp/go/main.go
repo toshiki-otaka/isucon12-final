@@ -763,11 +763,10 @@ func (h *Handler) createUser(c echo.Context) error {
 			CreatedAt:    requestAt,
 			UpdatedAt:    requestAt,
 		}
-		query = "INSERT INTO user_cards(id, user_id, card_id, amount_per_sec, level, total_exp, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-		if _, err := tx.Exec(query, card.ID, card.UserID, card.CardID, card.AmountPerSec, card.Level, card.TotalExp, card.CreatedAt, card.UpdatedAt); err != nil {
-			return errorResponse(c, http.StatusInternalServerError, err)
-		}
 		initCards = append(initCards, card)
+	}
+	if err := bulkInsertUserCards(tx, initCards); err != nil {
+		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 
 	initDeck := &UserDeck{
