@@ -1322,19 +1322,22 @@ func (h *Handler) receivePresent(c echo.Context) error {
 
 	// 配布処理
 	obtainCards := []*UserCard{}
+	presentIDs := make([]int64, 0, len(obtainPresent))
 	for i := range obtainPresent {
 		if obtainPresent[i].DeletedAt != nil {
 			return errorResponse(c, http.StatusInternalServerError, fmt.Errorf("received present"))
 		}
 
-		obtainPresent[i].UpdatedAt = requestAt
-		obtainPresent[i].DeletedAt = &requestAt
 		v := obtainPresent[i]
-		query = "UPDATE user_presents SET deleted_at=?, updated_at=? WHERE id=?"
-		_, err := tx.Exec(query, requestAt, requestAt, v.ID)
-		if err != nil {
-			return errorResponse(c, http.StatusInternalServerError, err)
-		}
+		presentIDs = append(presentIDs, v.ID)
+		// obtainPresent[i].UpdatedAt = requestAt
+		// obtainPresent[i].DeletedAt = &requestAt
+		// v := obtainPresent[i]
+		// query = "UPDATE user_presents SET deleted_at=?, updated_at=? WHERE id=?"
+		// _, err := tx.Exec(query, requestAt, requestAt, v.ID)
+		// if err != nil {
+		// 	return errorResponse(c, http.StatusInternalServerError, err)
+		// }
 
 		_, cards, _, err := h.obtainItem(tx, v.UserID, v.ItemID, v.ItemType, int64(v.Amount), requestAt)
 		if err != nil {
@@ -1347,6 +1350,14 @@ func (h *Handler) receivePresent(c echo.Context) error {
 			return errorResponse(c, http.StatusInternalServerError, err)
 		}
 		obtainCards = append(obtainCards, cards...)
+	}
+
+	q, args, err := sqlx.In("UPDATE user_presents SET deleted_at=?, updated_at=? WHERE id IN (?)", requestAt, requestAt, presentIDs)
+	if err != nil {
+		return errorResponse(c, http.StatusInternalServerError, err)
+	}
+	if _, err := tx.Exec(q, args...); err != nil {
+		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 
 	if err := bulkInsertUserCards(tx, obtainCards); err != nil {
