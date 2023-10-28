@@ -1350,6 +1350,8 @@ func bulkInsertUserCards(tx *sqlx.Tx, obtainCards []*UserCard) error {
 		}
 		query += ","
 	}
+	fmt.Println("bulk insert:", query)
+	fmt.Println("args len:", len(cardArgs))
 	if _, err := tx.Exec(query, cardArgs...); err != nil {
 		return err
 	}
