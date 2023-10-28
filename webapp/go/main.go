@@ -835,8 +835,7 @@ func (h *Handler) login(c echo.Context) error {
 			return errorResponse(c, http.StatusInternalServerError, err)
 		}
 	}
-	fmt.Println("userSession", userSession)
-	if userSession != nil {
+	if userSession.ID != 0 {
 		if userSession.UserID != user.ID {
 			return errorResponse(c, http.StatusForbidden, ErrForbidden)
 		}
