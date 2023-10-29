@@ -95,7 +95,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VPC
-      GroupDescription: Security Group for ISUCON12 Qualify
+      GroupDescription: Security Group for ISUCON12 Final
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: "22"
@@ -146,9 +146,9 @@ Resources:
   MyKeyPair:
     Type: "AWS::EC2::KeyPair"
     Properties:
-      KeyName: isucon12-quarify-cfn
+      KeyName: isucon12-final-cfn
 
-  QualifyInstance1:
+  FinalInstance1:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-0ecfc02bf3af2d03e
@@ -166,13 +166,13 @@ Resources:
             VolumeType: gp3
       Tags:
         - Key: Name
-          Value: isucon12-qualify-1
-  QualifyInstanceIP1:
+          Value: isucon12-final-1
+  FinalInstanceIP1:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
-      InstanceId: !Ref QualifyInstance1
-  QualifyInstance2:
+      InstanceId: !Ref FinalInstance1
+  FinalInstance2:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-0ecfc02bf3af2d03e
@@ -190,12 +190,12 @@ Resources:
             VolumeType: gp3
       Tags:
         - Key: Name
-          Value: isucon12-qualify-2
-  QualifyInstanceIP2:
+          Value: isucon12-final-2
+  FinalInstanceIP2:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
-      InstanceId: !Ref QualifyInstance2
+      InstanceId: !Ref FinalInstance2
   BenchmarkerInstance:
     Type: AWS::EC2::Instance
     Properties:
