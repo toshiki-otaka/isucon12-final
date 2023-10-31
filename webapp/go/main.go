@@ -453,7 +453,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		return nil, err
 	}
 	receivedHistories := make([]*UserPresentAllReceivedHistory, 0, len(presentAllIDs))
-	if err = tx.Get(&receivedHistories, query, args...); err != nil {
+	if err = tx.Select(&receivedHistories, query, args...); err != nil {
 		if err != sql.ErrNoRows {
 			return nil, err
 		}
