@@ -686,17 +686,18 @@ func (h *Handler) obtainItemBulk(tx *sqlx.Tx, userID int64, presents []*UserPres
 	}
 
 	// NOTE: 先にitem_mastersを取得しておく
-	query, args, err := sqlx.In("SELECT * FROM item_masters WHERE id IN (?)", itemIDs)
-	if err != nil {
-		return err
-	}
 	itemMasters := make([]*ItemMaster, 0, len(itemIDs))
-	if err := tx.Select(&itemMasters, query, args...); err != nil {
-		if err != sql.ErrNoRows {
+	if len(itemIDs) != 0 {
+		query, args, err := sqlx.In("SELECT * FROM item_masters WHERE id IN (?)", itemIDs)
+		if err != nil {
 			return err
 		}
+		if err := tx.Select(&itemMasters, query, args...); err != nil {
+			if err != sql.ErrNoRows {
+				return err
+			}
+		}
 	}
-
 	getItemMaster := func(itemID int64) *ItemMaster {
 		for _, item := range itemMasters {
 			if item.ID == itemID {
@@ -707,14 +708,16 @@ func (h *Handler) obtainItemBulk(tx *sqlx.Tx, userID int64, presents []*UserPres
 	}
 
 	// NOTE: 先にuser_itemsを取得しておく
-	query, args, err = sqlx.In("SELECT * FROM user_items WHERE user_id=? AND item_id IN (?)", userID, itemIDs)
-	if err != nil {
-		return err
-	}
 	userItems := make([]*UserItem, 0, len(itemIDs))
-	if err := tx.Select(&userItems, query, args...); err != nil {
-		if err != sql.ErrNoRows {
+	if len(itemIDs) != 0 {
+		query, args, err := sqlx.In("SELECT * FROM user_items WHERE user_id=? AND item_id IN (?)", userID, itemIDs)
+		if err != nil {
 			return err
+		}
+		if err := tx.Select(&userItems, query, args...); err != nil {
+			if err != sql.ErrNoRows {
+				return err
+			}
 		}
 	}
 	getUserItem := func(itemID int64) *UserItem {
@@ -769,7 +772,7 @@ func (h *Handler) obtainItemBulk(tx *sqlx.Tx, userID int64, presents []*UserPres
 			} else {
 				uitem.Amount += int(present.Amount)
 				uitem.UpdatedAt = requestAt
-				query = "UPDATE user_items SET amount=?, updated_at=? WHERE id=?"
+				query := "UPDATE user_items SET amount=?, updated_at=? WHERE id=?"
 				if _, err := tx.Exec(query, uitem.Amount, uitem.UpdatedAt, uitem.ID); err != nil {
 					return err
 				}
@@ -780,7 +783,7 @@ func (h *Handler) obtainItemBulk(tx *sqlx.Tx, userID int64, presents []*UserPres
 	}
 
 	user := new(User)
-	query = "SELECT * FROM users WHERE id=?"
+	query := "SELECT * FROM users WHERE id=?"
 	if err := tx.Get(user, query, userID); err != nil {
 		if err == sql.ErrNoRows {
 			return ErrUserNotFound
