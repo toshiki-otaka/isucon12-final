@@ -1442,7 +1442,7 @@ func (h *Handler) receivePresent(c echo.Context) error {
 
 	// 未取得のプレゼント取得
 	query := "SELECT * FROM user_presents WHERE id IN (?) AND user_id = ? AND deleted_at IS NULL"
-	query, params, err := sqlx.In(query, userID, req.PresentIDs)
+	query, params, err := sqlx.In(query, req.PresentIDs, userID)
 	if err != nil {
 		return errorResponse(c, http.StatusBadRequest, err)
 	}
