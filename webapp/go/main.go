@@ -471,10 +471,6 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			UpdatedAt:      requestAt,
 		}
 		userPresents = append(userPresents, up)
-		// query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-		// if _, err := tx.Exec(query, up.ID, up.UserID, up.SentAt, up.ItemType, up.ItemID, up.Amount, up.PresentMessage, up.CreatedAt, up.UpdatedAt); err != nil {
-		// 	return nil, err
-		// }
 
 		history := &UserPresentAllReceivedHistory{
 			ID:           generateUniqueID(),
@@ -485,18 +481,6 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			UpdatedAt:    requestAt,
 		}
 		UserPresentAllReceivedHistories = append(UserPresentAllReceivedHistories, history)
-		// query = "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
-		// if _, err := tx.Exec(
-		// 	query,
-		// 	history.ID,
-		// 	history.UserID,
-		// 	history.PresentAllID,
-		// 	history.ReceivedAt,
-		// 	history.CreatedAt,
-		// 	history.UpdatedAt,
-		// ); err != nil {
-		// 	return nil, err
-		// }
 
 		obtainPresents = append(obtainPresents, up)
 	}
@@ -1332,12 +1316,6 @@ func (h *Handler) receivePresent(c echo.Context) error {
 		presentIDs = append(presentIDs, v.ID)
 		obtainPresent[i].UpdatedAt = requestAt
 		obtainPresent[i].DeletedAt = &requestAt
-		// v := obtainPresent[i]
-		// query = "UPDATE user_presents SET deleted_at=?, updated_at=? WHERE id=?"
-		// _, err := tx.Exec(query, requestAt, requestAt, v.ID)
-		// if err != nil {
-		// 	return errorResponse(c, http.StatusInternalServerError, err)
-		// }
 
 		_, cards, _, err := h.obtainItem(tx, v.UserID, v.ItemID, v.ItemType, int64(v.Amount), requestAt)
 		if err != nil {
