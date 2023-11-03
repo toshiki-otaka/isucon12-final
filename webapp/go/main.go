@@ -231,6 +231,7 @@ func (h *Handler) checkSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc
 		query := "SELECT * FROM user_sessions WHERE session_id=? AND deleted_at IS NULL"
 		if err := h.db(userID).Get(userSession, query, sessID); err != nil {
 			if err == sql.ErrNoRows {
+				fmt.Println("======== userID:", userID, ", node:", int(userID)%4, ", sessionID:", sessID, " ============")
 				return errorResponse(c, http.StatusUnauthorized, ErrUnauthorized)
 			}
 			return errorResponse(c, http.StatusInternalServerError, err)
