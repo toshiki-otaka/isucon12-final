@@ -819,7 +819,9 @@ func initialize(c echo.Context) error {
 	for _, host := range mysqlHosts {
 		host := host
 		eg.Go(func() error {
-			out, err := exec.Command("ISUCON_DB_HOST="+host, "/bin/sh", "-c", SQLDirectory+"init.sh").CombinedOutput()
+			cmd := exec.Command("/bin/sh", "-c", SQLDirectory+"init.sh")
+			cmd.Env = append(os.Environ(), "ISUCON_DB_HOST="+host)
+			out, err := cmd.CombinedOutput()
 			if err != nil {
 				c.Logger().Errorf("Failed to initialize %s: %v", string(out), err)
 				return err
