@@ -65,7 +65,6 @@ func (h Handler) db(userID int64) *sqlx.DB {
 }
 
 func main() {
-	fmt.Println("start main2")
 	runtime.SetBlockProfileRate(1)
 	runtime.SetMutexProfileFraction(1)
 	go func() {
@@ -1056,7 +1055,6 @@ func (h *Handler) login(c echo.Context) error {
 		if userSession.UserID != user.ID {
 			return errorResponse(c, http.StatusForbidden, ErrForbidden)
 		}
-		fmt.Println("*userSession is ", *userSession, "user.ID is", user.ID)
 	}
 
 	// NOTE: セッションの有効期限切れチェック
