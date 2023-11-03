@@ -172,7 +172,17 @@ func (h *Handler) apiMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		c.Set("requestTime", requestAt.Unix())
 
+		// BANユーザ確認
 		userID, err := getUserID(c)
+		if err == nil && userID != 0 {
+			isBan, err := h.checkBan(userID)
+			if err != nil {
+				return errorResponse(c, http.StatusInternalServerError, err)
+			}
+			if isBan {
+				return errorResponse(c, http.StatusForbidden, ErrForbidden)
+			}
+		}
 
 		// 有効なマスタデータか確認
 		query := "SELECT * FROM version_masters WHERE status=1"
@@ -186,17 +196,6 @@ func (h *Handler) apiMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 		if masterVersion.MasterVersion != c.Request().Header.Get("x-master-version") {
 			return errorResponse(c, http.StatusUnprocessableEntity, ErrInvalidMasterVersion)
-		}
-
-		// BANユーザ確認
-		if err == nil && userID != 0 {
-			isBan, err := h.checkBan(userID)
-			if err != nil {
-				return errorResponse(c, http.StatusInternalServerError, err)
-			}
-			if isBan {
-				return errorResponse(c, http.StatusForbidden, ErrForbidden)
-			}
 		}
 
 		if err := next(c); err != nil {
