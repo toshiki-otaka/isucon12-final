@@ -232,7 +232,7 @@ func (h *Handler) checkSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc
 		if err := h.db(userID).Get(userSession, query, sessID); err != nil {
 			if err == sql.ErrNoRows {
 				fmt.Println("======== userID:", userID, ", node:", int(userID)%4, ", sessionID:", sessID, " ============")
-				return errorResponse(c, http.StatusUnauthorized, ErrUnauthorized)
+				return errorResponse(c, http.StatusUnauthorized, ErrForbidden)
 			}
 			return errorResponse(c, http.StatusInternalServerError, err)
 		}
