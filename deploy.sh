@@ -26,6 +26,7 @@ cd webapp/go
 mv isuconquest ${APP_HOME}/go/isuconquest
 cd -
 cp ./webapp/sql/3_schema_exclude_user_presents.sql ${APP_HOME}/sql/3_schema_exclude_user_presents.sql
+cp ./provisioning/packer/ansible/roles/xbuild/files/home/isucon/env /home/isucon/env
 
 sudo systemctl restart isuconquest.go.service
 
