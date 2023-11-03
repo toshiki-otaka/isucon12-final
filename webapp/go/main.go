@@ -230,7 +230,7 @@ func (h *Handler) checkSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc
 		userSession := new(Session)
 		query := "SELECT * FROM user_sessions WHERE session_id=? AND deleted_at IS NULL"
 		for _, db := range h.DBs {
-			if err := db.Get(userSession, query, sessID); err != nil {
+			if err := db.Get(userSession, query, sessID); err != nil && err != sql.ErrNoRows {
 				return errorResponse(c, http.StatusInternalServerError, err)
 			}
 			if userSession.ID > 0 {
