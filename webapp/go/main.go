@@ -443,19 +443,26 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		return nil, err
 	}
 
-	obtainPresents := make([]*UserPresent, 0)
+	presentAllIDs := make([]int64, len(normalPresents))
+	for i := range normalPresents {
+		presentAllIDs[i] = normalPresents[i].ID
+	}
+	query, args, err := sqlx.In("SELECT * FROM user_present_all_received_history WHERE user_id=? AND present_all_id IN (?)", userID, presentAllIDs)
+	if err != nil {
+		return nil, err
+	}
+	receivedHistories := make([]*UserPresentAllReceivedHistory, 0, len(presentAllIDs))
+	if err = tx.Select(&receivedHistories, query, args...); err != nil {
+		if err != sql.ErrNoRows {
+			return nil, err
+		}
+	}
+
 	userPresents := make([]*UserPresent, 0, len(normalPresents))
 	UserPresentAllReceivedHistories := make([]*UserPresentAllReceivedHistory, 0, len(normalPresents))
 	for _, np := range normalPresents {
-		received := new(UserPresentAllReceivedHistory)
-		query = "SELECT * FROM user_present_all_received_history WHERE user_id=? AND present_all_id=?"
-		err := tx.Get(received, query, userID, np.ID)
-		if err == nil {
-			// プレゼント配布済
+		if isReceived(receivedHistories, np.ID) {
 			continue
-		}
-		if err != sql.ErrNoRows {
-			return nil, err
 		}
 
 		up := &UserPresent{
@@ -480,8 +487,6 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			UpdatedAt:    requestAt,
 		}
 		UserPresentAllReceivedHistories = append(UserPresentAllReceivedHistories, history)
-
-		obtainPresents = append(obtainPresents, up)
 	}
 
 	// NOTE: user_presents
@@ -494,7 +499,16 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		return nil, err
 	}
 
-	return obtainPresents, nil
+	return userPresents, nil
+}
+
+func isReceived(histories []*UserPresentAllReceivedHistory, presentAllID int64) bool {
+	for _, history := range histories {
+		if history.PresentAllID == presentAllID {
+			return true
+		}
+	}
+	return false
 }
 
 func bulkInsertUserPresents(tx *sqlx.Tx, userPresents []*UserPresent) error {
@@ -641,6 +655,144 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 	}
 
 	return obtainCoins, obtainCards, obtainItems, nil
+}
+
+func (h *Handler) obtainItemBulk(tx *sqlx.Tx, userID int64, presents []*UserPresent, requestAt int64) error {
+	var totalObtainCoinAmount int64
+	obtainCards := make([]*UserCard, 0, len(presents))
+	obtainUserItems := make([]*UserItem, 0, len(presents))
+
+	itemIDs := make([]int64, 0, len(presents))
+	strongArtifactIDs := make([]int64, 0, len(presents))
+	for _, present := range presents {
+		switch present.ItemType {
+		case 2, 3, 4:
+			itemIDs = append(itemIDs, present.ItemID)
+			if present.ItemType == 3 || present.ItemType == 4 {
+				strongArtifactIDs = append(strongArtifactIDs, present.ItemID)
+			}
+		}
+	}
+
+	// NOTE: 先にitem_mastersを取得しておく
+	itemMasters := make([]*ItemMaster, 0, len(itemIDs))
+	if len(itemIDs) != 0 {
+		query, args, err := sqlx.In("SELECT * FROM item_masters WHERE id IN (?)", itemIDs)
+		if err != nil {
+			return err
+		}
+		if err := tx.Select(&itemMasters, query, args...); err != nil {
+			if err != sql.ErrNoRows {
+				return err
+			}
+		}
+	}
+	getItemMaster := func(itemID int64) *ItemMaster {
+		for _, item := range itemMasters {
+			if item.ID == itemID {
+				return item
+			}
+		}
+		return nil
+	}
+
+	// NOTE: 先にuser_itemsを取得しておく
+	userItems := make([]*UserItem, 0, len(itemIDs))
+	if len(itemIDs) != 0 {
+		query, args, err := sqlx.In("SELECT * FROM user_items WHERE user_id=? AND item_id IN (?)", userID, itemIDs)
+		if err != nil {
+			return err
+		}
+		if err := tx.Select(&userItems, query, args...); err != nil {
+			if err != sql.ErrNoRows {
+				return err
+			}
+		}
+	}
+	getUserItem := func(itemID int64) *UserItem {
+		for _, item := range userItems {
+			if item.ItemID == itemID {
+				return item
+			}
+		}
+		return nil
+	}
+
+	for _, present := range presents {
+		switch present.ItemType {
+		case 1: // coin
+			totalObtainCoinAmount += int64(present.Amount)
+		case 2: // card(ハンマー)
+			item := getItemMaster(present.ItemID)
+			if item == nil {
+				return ErrItemNotFound
+			}
+
+			card := &UserCard{
+				ID:           generateUniqueID(),
+				UserID:       present.UserID,
+				CardID:       present.ItemID,
+				AmountPerSec: *item.AmountPerSec,
+				Level:        1,
+				TotalExp:     0,
+				CreatedAt:    requestAt,
+				UpdatedAt:    requestAt,
+			}
+			obtainCards = append(obtainCards, card)
+
+		case 3, 4: // 強化素材
+			item := getItemMaster(present.ItemID)
+			if item == nil {
+				return ErrItemNotFound
+			}
+			uitem := getUserItem(present.ItemID)
+
+			if uitem == nil {
+				uitem = &UserItem{
+					ID:        generateUniqueID(),
+					UserID:    userID,
+					ItemType:  item.ItemType,
+					ItemID:    item.ID,
+					Amount:    int(present.Amount),
+					CreatedAt: requestAt,
+					UpdatedAt: requestAt,
+				}
+				obtainUserItems = append(obtainUserItems, uitem)
+			} else {
+				uitem.Amount += int(present.Amount)
+				uitem.UpdatedAt = requestAt
+				query := "UPDATE user_items SET amount=?, updated_at=? WHERE id=?"
+				if _, err := tx.Exec(query, uitem.Amount, uitem.UpdatedAt, uitem.ID); err != nil {
+					return err
+				}
+			}
+		default:
+			return ErrInvalidItemType
+		}
+	}
+
+	user := new(User)
+	query := "SELECT * FROM users WHERE id=?"
+	if err := tx.Get(user, query, userID); err != nil {
+		if err == sql.ErrNoRows {
+			return ErrUserNotFound
+		}
+		return err
+	}
+
+	query = "UPDATE users SET isu_coin=? WHERE id=?"
+	if _, err := tx.Exec(query, user.IsuCoin+totalObtainCoinAmount, userID); err != nil {
+		return err
+	}
+
+	if err := bulkInsertUserCards(tx, obtainCards); err != nil {
+		return err
+	}
+	if err := bulkInsertUserItems(tx, obtainUserItems); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // initialize 初期化処理
@@ -1281,8 +1433,8 @@ func (h *Handler) receivePresent(c echo.Context) error {
 	}
 
 	// 未取得のプレゼント取得
-	query := "SELECT * FROM user_presents WHERE id IN (?) AND deleted_at IS NULL"
-	query, params, err := sqlx.In(query, req.PresentIDs)
+	query := "SELECT * FROM user_presents WHERE id IN (?) AND user_id = ? AND deleted_at IS NULL"
+	query, params, err := sqlx.In(query, req.PresentIDs, userID)
 	if err != nil {
 		return errorResponse(c, http.StatusBadRequest, err)
 	}
@@ -1304,7 +1456,6 @@ func (h *Handler) receivePresent(c echo.Context) error {
 	defer tx.Rollback() //nolint:errcheck
 
 	// 配布処理
-	obtainCards := []*UserCard{}
 	presentIDs := make([]int64, 0, len(obtainPresent))
 	for i := range obtainPresent {
 		if obtainPresent[i].DeletedAt != nil {
@@ -1315,18 +1466,17 @@ func (h *Handler) receivePresent(c echo.Context) error {
 		presentIDs = append(presentIDs, v.ID)
 		obtainPresent[i].UpdatedAt = requestAt
 		obtainPresent[i].DeletedAt = &requestAt
+	}
 
-		_, cards, _, err := h.obtainItem(tx, v.UserID, v.ItemID, v.ItemType, int64(v.Amount), requestAt)
-		if err != nil {
-			if err == ErrUserNotFound || err == ErrItemNotFound {
-				return errorResponse(c, http.StatusNotFound, err)
-			}
-			if err == ErrInvalidItemType {
-				return errorResponse(c, http.StatusBadRequest, err)
-			}
-			return errorResponse(c, http.StatusInternalServerError, err)
+	// 一括プレゼント受け取り
+	if err := h.obtainItemBulk(tx, userID, obtainPresent, requestAt); err != nil {
+		if err == ErrUserNotFound || err == ErrItemNotFound {
+			return errorResponse(c, http.StatusNotFound, err)
 		}
-		obtainCards = append(obtainCards, cards...)
+		if err == ErrInvalidItemType {
+			return errorResponse(c, http.StatusBadRequest, err)
+		}
+		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 
 	q, args, err := sqlx.In("UPDATE user_presents SET deleted_at=?, updated_at=? WHERE id IN (?)", requestAt, requestAt, presentIDs)
@@ -1334,10 +1484,6 @@ func (h *Handler) receivePresent(c echo.Context) error {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	if _, err := tx.Exec(q, args...); err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
-
-	if err := bulkInsertUserCards(tx, obtainCards); err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 
@@ -1366,9 +1512,28 @@ func bulkInsertUserCards(tx *sqlx.Tx, obtainCards []*UserCard) error {
 		}
 		query += ","
 	}
-	fmt.Println("bulk insert:", query)
-	fmt.Println("args len:", len(cardArgs))
 	if _, err := tx.Exec(query, cardArgs...); err != nil {
+		return err
+	}
+	return nil
+}
+
+func bulkInsertUserItems(tx *sqlx.Tx, userItems []*UserItem) error {
+	if len(userItems) == 0 {
+		return nil
+	}
+	query := "INSERT INTO user_items(id, user_id, item_id, item_type, amount, created_at, updated_at) VALUES "
+	args := []any{}
+	for i := range userItems {
+		userItem := userItems[i]
+		args = append(args, userItem.ID, userItem.UserID, userItem.ItemID, userItem.ItemType, userItem.Amount, userItem.CreatedAt, userItem.UpdatedAt)
+		query += "(?, ?, ?, ?, ?, ?, ?)"
+		if i == len(userItems)-1 {
+			break
+		}
+		query += ","
+	}
+	if _, err := tx.Exec(query, args...); err != nil {
 		return err
 	}
 	return nil
