@@ -22,7 +22,15 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
+
+var mysqlHosts = []string{
+	"192.168.0.12",
+	"192.168.0.13",
+	"192.168.0.14",
+	"192.168.0.15",
+}
 
 var (
 	ErrInvalidRequestBody       error = fmt.Errorf("invalid request body")
@@ -54,10 +62,6 @@ type Handler struct {
 
 func (h Handler) db(userID int64) *sqlx.DB {
 	return h.DBs[int(userID)%len(h.DBs)]
-}
-
-var mysqlHosts = []string{
-	"192.168.0.11",
 }
 
 func main() {
@@ -811,15 +815,19 @@ func (h *Handler) obtainItemBulk(tx *sqlx.Tx, userID int64, presents []*UserPres
 // initialize 初期化処理
 // POST /initialize
 func initialize(c echo.Context) error {
-	dbx, err := connectDB(mysqlHosts[0], true)
-	if err != nil {
-		return errorResponse(c, http.StatusInternalServerError, err)
+	var eg errgroup.Group
+	for _, host := range mysqlHosts {
+		host := host
+		eg.Go(func() error {
+			out, err := exec.Command("ISUCON_DB_HOST="+host, "/bin/sh", "-c", SQLDirectory+"init.sh").CombinedOutput()
+			if err != nil {
+				c.Logger().Errorf("Failed to initialize %s: %v", string(out), err)
+				return err
+			}
+			return nil
+		})
 	}
-	defer dbx.Close()
-
-	out, err := exec.Command("/bin/sh", "-c", SQLDirectory+"init.sh").CombinedOutput()
-	if err != nil {
-		c.Logger().Errorf("Failed to initialize %s: %v", string(out), err)
+	if err := eg.Wait(); err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 
