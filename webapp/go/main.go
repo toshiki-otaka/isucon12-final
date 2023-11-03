@@ -16,7 +16,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
@@ -1906,29 +1905,6 @@ func noContentResponse(c echo.Context, status int) error {
 
 func generateUniqueID() int64 {
 	return time.Now().UnixNano()
-}
-
-// generateID ユニークなIDを生成する
-func (h *Handler) generateID() (int64, error) {
-	var updateErr error
-	for i := 0; i < 100; i++ {
-		res, err := h.DB.Exec("UPDATE id_generator SET id=LAST_INSERT_ID(id+1)")
-		if err != nil {
-			if merr, ok := err.(*mysql.MySQLError); ok && merr.Number == 1213 {
-				updateErr = err
-				continue
-			}
-			return 0, err
-		}
-
-		id, err := res.LastInsertId()
-		if err != nil {
-			return 0, err
-		}
-		return id, nil
-	}
-
-	return 0, fmt.Errorf("failed to generate id: %w", updateErr)
 }
 
 // generateUUID UUIDの生成
