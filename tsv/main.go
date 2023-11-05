@@ -26,9 +26,6 @@ func main() {
 	}
 	defer f.Close()
 
-	r := csv.NewReader(f)
-	r.Comma = '\t'
-
 	writers := make([]*csv.Writer, cnt)
 	for i := 0; i < cnt; i++ {
 		f, err := os.Create("./webapp/sql/5_user_presents_not_receive_data_" + strconv.Itoa(i) + ".tsv")
@@ -40,6 +37,9 @@ func main() {
 		defer w.Flush()
 		writers[i] = w
 	}
+
+	r := csv.NewReader(f)
+	r.Comma = '\t'
 
 	var line int
 	for {
