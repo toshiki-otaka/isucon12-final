@@ -69,8 +69,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		i := int(userID) % cnt
-		if err := writers[i].Write(record); err != nil {
+		if err := writers[int(userID)%cnt].Write(record); err != nil {
 			panic(err)
 		}
 	}
