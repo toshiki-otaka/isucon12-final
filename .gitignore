@@ -2,3 +2,6 @@ logs/*
 .idea
 go.work
 go.work.sum
+tsv/benchmarker/*
+tsv/webapp/sql/*
+!tsv/webapp/sql/.gitkeep
