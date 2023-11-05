@@ -820,11 +820,12 @@ func (h *Handler) obtainItemBulk(tx *sqlx.Tx, userID int64, presents []*UserPres
 // POST /initialize
 func initialize(c echo.Context) error {
 	var eg errgroup.Group
-	for _, host := range mysqlHosts {
-		host := host
+	for i := range mysqlHosts {
+		i := i
+		host := mysqlHosts[i]
 		eg.Go(func() error {
 			cmd := exec.Command("/bin/sh", "-c", SQLDirectory+"init.sh")
-			cmd.Env = append(os.Environ(), "ISUCON_DB_HOST="+host)
+			cmd.Env = append(os.Environ(), "ISUCON_DB_HOST="+host, "SHARD_NUM="+strconv.Itoa(i))
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				c.Logger().Errorf("Failed to initialize %s: %v", string(out), err)
