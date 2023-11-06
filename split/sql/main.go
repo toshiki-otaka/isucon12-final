@@ -37,24 +37,85 @@ func main() {
 	}
 
 	r := bufio.NewReader(f)
+	var lineNum int
 	for {
-		b, err := r.ReadBytes('\n')
+		lineNum++
+		fmt.Println("line:", lineNum)
+
+		line, err := r.ReadString('\n')
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			panic(err)
 		}
-		line := string(b)
 
 		if !strings.HasPrefix(line, "INSERT INTO") {
+			for _, w := range writers {
+				if _, err := w.WriteString(line); err != nil {
+					panic(err)
+				}
+			}
 			continue
 		}
 
-		end := 100
-		if len(line) < end {
-			end = len(line)
+		var tablename string
+		switch {
+		case strings.HasPrefix(line, "INSERT INTO `users` VALUES "):
+			tablename = "users"
+		case strings.HasPrefix(line, "INSERT INTO `user_bans` VALUES "):
+			tablename = "user_bans"
+		case strings.HasPrefix(line, "INSERT INTO `user_decks` VALUES "):
+			tablename = "user_decks"
+		case strings.HasPrefix(line, "INSERT INTO `user_devices` VALUES "):
+			tablename = "user_devices"
+		case strings.HasPrefix(line, "INSERT INTO `user_login_bonuses` VALUES "):
+			tablename = "user_login_bonuses"
+		case strings.HasPrefix(line, "INSERT INTO `user_cards` VALUES "):
+			tablename = "user_cards"
+		case strings.HasPrefix(line, "INSERT INTO `user_items` VALUES "):
+			tablename = "user_items"
+		case strings.HasPrefix(line, "INSERT INTO `user_present_all_received_history` VALUES "):
+			tablename = "user_present_all_received_history"
+		default:
+			for _, w := range writers {
+				if _, err := w.WriteString(line); err != nil {
+					panic(err)
+				}
+			}
+			continue
 		}
-		fmt.Println(len(line), string(line)[:end])
+
+		inserts := make([]string, cnt)
+		prefix := "INSERT INTO `" + tablename + "` VALUES ("
+		for i := range inserts {
+			inserts[i] = prefix
+		}
+		values := strings.TrimPrefix(line, prefix)
+		values = strings.TrimSuffix(values, ");\n")
+		records := strings.Split(values, "),(")
+		for _, record := range records {
+			cols := strings.Split(record, ",")
+			userIDStr := cols[1]
+			if tablename == "users" {
+				userIDStr = cols[0]
+			}
+			userID, err := strconv.ParseInt(userIDStr, 10, 64)
+			if err != nil {
+				fmt.Println("cols:", cols)
+				panic(err)
+			}
+			shardNum := int(userID) % cnt
+			if inserts[shardNum] != prefix {
+				inserts[shardNum] += "),("
+			}
+			inserts[shardNum] += record
+		}
+		for i := range inserts {
+			inserts[i] += ");"
+			if _, err := writers[i].WriteString(inserts[i] + "\n"); err != nil {
+				panic(err)
+			}
+		}
 	}
 }
