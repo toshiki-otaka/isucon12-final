@@ -21,7 +21,6 @@ user		= mysql
 # port		= 3306
 # datadir	= /var/lib/mysql
 
-secure-file-priv = NULL
 
 # If MySQL is running as a replication slave, this should be
 # changed. Ref https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_tmpdir
