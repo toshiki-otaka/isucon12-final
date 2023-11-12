@@ -25,6 +25,7 @@ func main() {
 		fmt.Println("$ tar -xvf initial_data.tar.gz")
 		fmt.Println("$ cp ./webapp/sql/* ../webapp/sql/")
 		fmt.Println("$ rm -rf ./benchmarker/ ./webapp/")
+		fmt.Println("$ rm initial_data.tar.gz")
 		fmt.Println("")
 		panic(err)
 	}
