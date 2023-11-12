@@ -2,6 +2,7 @@ logs/*
 .idea
 go.work
 go.work.sum
+webapp/go/isuconquest
 split/benchmarker/*
 split/webapp/sql/*
 !split/webapp/sql/.gitkeep
