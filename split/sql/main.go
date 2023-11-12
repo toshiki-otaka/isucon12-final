@@ -23,6 +23,9 @@ func main() {
 		fmt.Println("Run:")
 		fmt.Println("$ wget https://github.com/isucon/isucon12-final/releases/download/initial_data_20220912/initial_data.tar.gz")
 		fmt.Println("$ tar -xvf initial_data.tar.gz")
+		fmt.Println("$ cp ./webapp/sql/* ../webapp/sql/")
+		fmt.Println("$ rm -rf ./benchmarker/ ./webapp/")
+		fmt.Println("")
 		panic(err)
 	}
 	defer f.Close()
