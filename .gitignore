@@ -2,9 +2,8 @@ logs/*
 .idea
 go.work
 go.work.sum
+webapp/go/isuconquest
 split/benchmarker/*
 split/webapp/sql/*
-!split/webapp/sql/.gitkeep
-2_init.sql
-4_alldata_exclude_user_presents.sql
-5_user_presents_not_receive_data.tsv
+webapp/sql/4_alldata_exclude_user_presents*
+webapp/sql/5_user_presents_not_receive_data*

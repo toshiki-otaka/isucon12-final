@@ -1,0 +1,21 @@
+- name: Deploy webapp
+  become: true
+  copy:
+    src: ../webapp/go/isuconquest
+    dest: /home/isucon/webapp/go/
+  notify: restart_webapp
+- name: Deploy sql files
+  become: true
+  copy:
+    src: "{{ item }}"
+    dest: /home/isucon/webapp/sql/
+  with_fileglob:
+    - "../webapp/sql/init.sh"
+    - "../webapp/sql/3_schema_exclude_user_presents.sql"
+    - "../webapp/sql/4_alldata_exclude_user_presents*"
+    - "../webapp/sql/5_user_presents_not_receive_data*"
+- name: Deploy env
+  become: true
+  copy:
+    src: ../provisioning/packer/ansible/roles/xbuild/files/home/isucon/env
+    dest: /home/isucon/env

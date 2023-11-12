@@ -1,0 +1,6 @@
+- name: Restart webapp
+  become: true
+  service:
+    name: isuconquest.go
+    state: restarted
+  listen: restart_webapp

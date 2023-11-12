@@ -18,18 +18,22 @@ func main() {
 		panic(err)
 	}
 
-	f, err := os.Open("./webapp/sql/4_alldata_exclude_user_presents.sql")
+	f, err := os.Open("../webapp/sql/4_alldata_exclude_user_presents.sql")
 	if err != nil {
 		fmt.Println("Run:")
 		fmt.Println("$ wget https://github.com/isucon/isucon12-final/releases/download/initial_data_20220912/initial_data.tar.gz")
 		fmt.Println("$ tar -xvf initial_data.tar.gz")
+		fmt.Println("$ cp ./webapp/sql/* ../webapp/sql/")
+		fmt.Println("$ rm -rf ./benchmarker/ ./webapp/")
+		fmt.Println("$ rm initial_data.tar.gz")
+		fmt.Println("")
 		panic(err)
 	}
 	defer f.Close()
 
 	writers := make([]*os.File, cnt)
 	for i := 0; i < cnt; i++ {
-		f, err := os.Create("./webapp/sql/4_alldata_exclude_user_presents_" + strconv.Itoa(i) + ".sql")
+		f, err := os.Create("../webapp/sql/4_alldata_exclude_user_presents_" + strconv.Itoa(i) + ".sql")
 		if err != nil {
 			panic(err)
 		}

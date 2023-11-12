@@ -17,18 +17,22 @@ func main() {
 		panic(err)
 	}
 
-	f, err := os.Open("./webapp/sql/5_user_presents_not_receive_data.tsv")
+	f, err := os.Open("../webapp/sql/5_user_presents_not_receive_data.tsv")
 	if err != nil {
 		fmt.Println("Run:")
 		fmt.Println("$ wget https://github.com/isucon/isucon12-final/releases/download/initial_data_20220912/initial_data.tar.gz")
 		fmt.Println("$ tar -xvf initial_data.tar.gz")
+		fmt.Println("$ cp ./webapp/sql/* ../webapp/sql/")
+		fmt.Println("$ rm -rf ./benchmarker/ ./webapp/")
+		fmt.Println("$ rm initial_data.tar.gz")
+		fmt.Println("")
 		panic(err)
 	}
 	defer f.Close()
 
 	writers := make([]*csv.Writer, cnt)
 	for i := 0; i < cnt; i++ {
-		f, err := os.Create("./webapp/sql/5_user_presents_not_receive_data_" + strconv.Itoa(i) + ".tsv")
+		f, err := os.Create("../webapp/sql/5_user_presents_not_receive_data_" + strconv.Itoa(i) + ".tsv")
 		if err != nil {
 			panic(err)
 		}
