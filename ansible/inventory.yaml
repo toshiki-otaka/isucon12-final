@@ -1,36 +1,22 @@
 all:
-  vars:
-    ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
   children:
     nginx:
       hosts:
         nginx01:
-          ansible_host: 13.113.5.110
-    app:
+          ansible_host: 127.0.0.1
+    webapp:
       hosts:
-        app01:
-          ansible_host: 13.113.5.110
-        app02:
-          ansible_host: 54.248.59.80
-        app03:
-          ansible_host: 54.199.77.69
-        app04:
-          ansible_host: 13.113.31.216
+        webapp01:
+          ansible_host: 127.0.0.1
     db:
       hosts:
         db01:
-          ansible_host: 13.113.5.110
-        db02:
-          ansible_host: 54.248.59.80
-        db03:
-          ansible_host: 54.199.77.69
-        db04:
-          ansible_host: 13.113.31.216
-    # memcached:
-      # hosts:
-        # memcached01:
-          # ansible_host: 127.0.0.1
-    # redis:
-      # hosts:
-        # redis01:
-          # ansible_host: 127.0.0.1
+          ansible_host: 127.0.0.1
+    memcached:
+      hosts:
+        memcached01:
+          ansible_host: 127.0.0.1
+    redis:
+      hosts:
+        redis01:
+          ansible_host: 127.0.0.1

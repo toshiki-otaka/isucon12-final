@@ -1,0 +1,8 @@
+- name: Deploy configuration files
+  become: true
+  ansible.posix.synchronize:
+    src: etc/nginx/
+    dest: /etc/nginx/
+    mode: push
+    recursive: true
+  notify: restart_nginx

@@ -1,0 +1,8 @@
+- name: Deploy configuration files
+  become: true
+  ansible.posix.synchronize:
+    src: etc/mysql/
+    dest: /etc/mysql/
+    mode: push
+    recursive: true
+  notify: restart_mysql
