@@ -1,0 +1,6 @@
+- name: Deploy webapp
+  become: true
+  copy:
+    src: ../webapp/go/isuconquest
+    dest: /home/isucon/webapp/go/isuconquest
+  notify: restart_webapp
