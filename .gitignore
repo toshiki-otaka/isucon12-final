@@ -1,3 +1,9 @@
 logs/*
+.idea
 go.work
 go.work.sum
+webapp/go/isuconquest
+split/benchmarker/*
+split/webapp/sql/*
+webapp/sql/4_alldata_exclude_user_presents*
+webapp/sql/5_user_presents_not_receive_data*

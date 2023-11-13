@@ -1,0 +1,38 @@
+all:
+  children:
+    bench:
+      hosts:
+        bench01:
+          ansible_host: 54.92.65.127
+    nginx:
+      hosts:
+        nginx01:
+          ansible_host: 54.150.104.226
+    webapp:
+      hosts:
+        webapp01:
+          ansible_host: 54.150.104.226
+        webapp02:
+          ansible_host: 54.248.42.73
+        webapp03:
+          ansible_host: 18.176.133.22
+        webapp04:
+          ansible_host: 54.248.128.202
+    db:
+      hosts:
+        db01:
+          ansible_host: 54.150.104.226
+        db02:
+          ansible_host: 54.248.42.73
+        db03:
+          ansible_host: 18.176.133.22
+        db04:
+          ansible_host: 54.248.128.202
+    # memcached:
+      # hosts:
+        # memcached01:
+          # ansible_host: 127.0.0.1
+    # redis:
+      # hosts:
+        # redis01:
+          # ansible_host: 127.0.0.1
